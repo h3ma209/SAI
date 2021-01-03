@@ -4,12 +4,9 @@
 import spacy
 import torch
 from torchtext import data    
-from libs import sql_tokenizer
 from libs import *
 import numpy as np
 import pandas as pd
-from evaluate import *
-from train import *
 import torch.optim as optim
 import time
 import os
@@ -17,7 +14,6 @@ import pickle
 import random
 import torch.nn as nn
 from Model import *
-from predict import predict
 
 nlp = spacy.load('en')
 
@@ -122,6 +118,74 @@ def binary_accuracy(preds, y):
 model = model.to(device)
 criterion = criterion.to(device)
 
+def train(model, iterator, optimizer, criterion):
+    
+
+    epoch_loss = 0
+    epoch_acc = 0
+    
+
+    model.train()  
+    
+    for batch in iterator:
+
+        optimizer.zero_grad()   
+        
+
+        text, text_lengths = batch.text   
+        
+
+        predictions = model(text, text_lengths).squeeze()  
+        
+
+        y_tensor = torch.tensor(batch.label, dtype=torch.long, device=device)
+        loss = criterion(predictions, y_tensor)        
+        
+
+        acc = binary_accuracy(predictions, batch.label)   
+        
+
+        loss.backward()       
+        
+
+        optimizer.step()      
+        
+
+        epoch_loss += loss.item()  
+        epoch_acc += acc.item()    
+        
+    return epoch_loss / len(iterator), epoch_acc / len(iterator)
+
+def evaluate(model, iterator, criterion):
+    
+
+    epoch_loss = 0
+    epoch_acc = 0
+
+
+    model.eval()
+    
+
+    with torch.no_grad():
+    
+        for batch in iterator:
+        
+
+            text, text_lengths = batch.text
+            
+
+            predictions = model(text, text_lengths).squeeze()
+            
+
+            y_tensor = torch.tensor(batch.label, dtype=torch.long, device=device)
+            loss = criterion(predictions, y_tensor)      
+            acc = binary_accuracy(predictions, batch.label)
+            
+
+            epoch_loss += loss.item()
+            epoch_acc += acc.item()
+        
+    return epoch_loss / len(iterator), epoch_acc / len(iterator)
 
 N_EPOCHS = 7
 best_valid_loss = float('inf')
@@ -150,6 +214,7 @@ def save_model():
     models_path = "../saved_weights"
     md_val_acc = "%.2f"%(valid_acc*100)
     model_name = "Acc "+md_val_acc+".pt"
+    torch.save(model.state_dict(), os.path.join("../saved_models",model_name))
     full_path = os.path.join(models_path, model_name)
     torch.save(model.state_dict(),full_path)
     print("SAVED\n",model_name)
@@ -160,7 +225,21 @@ save_model()
 
 
 
-
+def predict(model,sentence):
+    pred_2_lbl = {1:'xss',0:'sql',2:"safe"}
+    tokenized = [tok.text for tok in nlp.tokenizer(sql_tokenizer(sentence))] 
+    print(tokenized)
+    indexed = [TEXT.vocab.stoi[t] for t in tokenized] 
+    print(indexed)
+    length = [len(indexed)] 
+    tensor = torch.LongTensor(indexed).to(device) 
+    tensor = tensor.unsqueeze(1).T
+    length_tensor = torch.LongTensor(length)
+    prediction = model(tensor,length_tensor)
+    pred_lbl = np.argmax(prediction.detach().numpy())
+    print('\n')
+    print('predicted threat type:',pred_2_lbl[pred_lbl])
+    return prediction
 
 # Examples
 

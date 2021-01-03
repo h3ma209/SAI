@@ -1,3 +1,6 @@
+from flask import Flask
+from flask import request
+app = Flask(__name__)
 import time
 proc_start = time.time()
 import spacy
@@ -53,4 +56,10 @@ def predict(model,sentence,all = False):
     else:
         return prediction,pred_2_lbl[pred_lbl]
 
-print(predict(model, 'group_concat(namapemohon,0x3a,email),3,4,5,6 from pendaftaran_user'),time.time()-proc_start)
+@app.route('/flask', methods=['GET'])
+def index():
+    sql=request.args.get('username')
+    return str(predict(model, sql,all=True))
+
+if __name__ == "__main__":
+    app.run(port=5000, debug=True)

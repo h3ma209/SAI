@@ -1,5 +1,5 @@
 import torch
-def train(model, iterator, optimizer, criterion):
+def train(model, iterator, optimizer, criterion,device):
     
 
     epoch_loss = 0
