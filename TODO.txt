@@ -1,0 +1,8 @@
+1- make sure it reads single words "hema" -> gave "SQL"
+becuz hema was indexed as '0' becuz its not in the vocab
+
+2- prediction accuracy too
+
+3- make flask work as an api for the predictions
+
+# for now
