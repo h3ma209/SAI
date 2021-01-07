@@ -6,3 +6,7 @@ becuz hema was indexed as '0' becuz its not in the vocab
 3- make flask work as an api for the predictions
 
 # for now
+
+-- fix reports --
+
+1- i fixed the first one by removing all the zeros in the indexed list

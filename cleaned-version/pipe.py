@@ -36,6 +36,7 @@ model.load_state_dict(torch.load('..\\saved_weights\\Acc 97.32.pt'))
 #model.load_state_dict(load)
 model.eval()
 print("loaded model",time.time()-proc_start)
+
 def predict(model,sentence,all = False):
     pred_2_lbl = {1:'xss',0:'sql',2:"safe"}
     tokenized = [tok.text for tok in nlp.tokenizer(sql_tokenizer(sentence))] 
@@ -70,9 +71,11 @@ def predict(model,sentence,all = False):
         return prediction,pred_2_lbl[pred_lbl]
 
 @app.route('/flask', methods=['GET'])
+
+
 def index():
     sql=request.args.get('username')
     return str(predict(model, sql,all=True))
 
 if __name__ == "__main__":
-    app.run(port=5000)
+    app.run(port=5000,debug=True)

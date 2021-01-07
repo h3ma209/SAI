@@ -3,10 +3,10 @@ import pandas
 import glob
 import pickle
 
-f = open('keywords.txt','r')
+f = open('keys/keywords.txt','r')
 keys = list(map(lambda x:x.replace("\n",''),f.readlines()))
 f.close()
-f = open('replace.txt','r')
+f = open('keys/replace.txt','r')
 
 dicts = {}
 replace = list(map(lambda x:x.replace("\n",''),f.readlines()))

@@ -34,7 +34,7 @@ LABEL = data.LabelField(dtype = torch.float,batch_first=True)
 fields = [(None, None), ('text',TEXT),('label', LABEL)]
 
 
-training_data=data.TabularDataset(path = '../csv_files/xss_safe_sql.csv',format = 'csv',fields = fields,skip_header = True)
+training_data=data.TabularDataset(path = '../csv_files/safe_xss_sql.csv',format = 'csv',fields = fields,skip_header = True)
 
 print(vars(training_data.examples[0]))
 for i,dt in enumerate(training_data):
