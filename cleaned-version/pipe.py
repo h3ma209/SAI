@@ -41,8 +41,21 @@ def predict(model,sentence,all = False):
     tokenized = [tok.text for tok in nlp.tokenizer(sql_tokenizer(sentence))] 
     #print(tokenized)
 
-    indexed = [TEXT.vocab.stoi[t] for t in tokenized] 
+    #indexed = [TEXT.vocab.stoi[t] for t in tokenized] 
     #print(indexed)
+    indexed = []
+    added = 0
+    for t in tokenized:
+        
+        t_i = TEXT.vocab.stoi[t]
+        if t_i ==0:
+            idx = len(TEXT.vocab.stoi) + 1 + added
+            added +=1
+            indexed.append(idx)
+        else:
+            indexed.append()
+
+
     length = [len(indexed)] 
     tensor = torch.LongTensor(indexed).to(device) 
     tensor = tensor.unsqueeze(1).T
@@ -62,4 +75,4 @@ def index():
     return str(predict(model, sql,all=True))
 
 if __name__ == "__main__":
-    app.run(port=5000, debug=True)
+    app.run(port=5000)
