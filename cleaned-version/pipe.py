@@ -9,6 +9,7 @@ from libs import *
 import torch
 import numpy as np
 from Model import classifier
+from flask import jsonify
 
 print("imported libs",time.time()-proc_start)
 
@@ -17,12 +18,13 @@ nlp = spacy.load('en')
 torch.backends.cudnn.deterministic = True  
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')  
 TEXT = load_vocab('pickles\\vocab.pt')
+LABEL  = load_vocab("pickles\\label.pt")
 print("loaded vocab",time.time()-proc_start)
 
 size_of_vocab = len(TEXT.vocab)
-embedding_dim = 100
+embedding_dim = 300#100
 num_hidden_nodes = 32
-num_output_nodes = 4
+num_output_nodes = len(LABEL.vocab.stoi)
 num_layers = 2
 bidirection = True
 dropout = 0.2
@@ -30,7 +32,7 @@ dropout = 0.2
 
 model = classifier(size_of_vocab, embedding_dim, num_hidden_nodes,num_output_nodes, num_layers, 
                    bidirectional = True, dropout = dropout)
-model.load_state_dict(torch.load('..\\saved_weights\\Acc 97.32.pt'))
+model.load_state_dict(torch.load('..\\saved_weights\\Acc 99.77.pt'))
 #print(model)
 #print(load)
 #model.load_state_dict(load)
@@ -38,23 +40,18 @@ model.eval()
 print("loaded model",time.time()-proc_start)
 
 def predict(model,sentence,all = False):
-    pred_2_lbl = {1:'xss',0:'sql',2:"safe"}
+    pred_2_lbl = {num:key for key,num in LABEL.vocab.stoi.items()}
     tokenized = [tok.text for tok in nlp.tokenizer(sql_tokenizer(sentence))] 
-    #print(tokenized)
+    print(tokenized)
 
     #indexed = [TEXT.vocab.stoi[t] for t in tokenized] 
-    #print(indexed)
     indexed = []
-    added = 0
     for t in tokenized:
+        tt = TEXT.vocab.stoi[t]
+        if tt != 0:
+            indexed.append(tt)
         
-        t_i = TEXT.vocab.stoi[t]
-        if t_i ==0:
-            idx = len(TEXT.vocab.stoi) + 1 + added
-            added +=1
-            indexed.append(idx)
-        else:
-            indexed.append()
+    print(indexed)
 
 
     length = [len(indexed)] 
@@ -70,12 +67,15 @@ def predict(model,sentence,all = False):
     else:
         return prediction,pred_2_lbl[pred_lbl]
 
-@app.route('/flask', methods=['GET'])
-
+@app.route('/api/sai', methods=['GET'])
 
 def index():
-    sql=request.args.get('username')
-    return str(predict(model, sql,all=True))
+    sql=request.args.get('query')
+    prediction,label, tokenized, indexed = predict(model, sql,all=True)
+    return jsonify({"prediction":prediction.detach().numpy().tolist(),
+                    "label":label,
+                    "tokenized":tokenized,
+                    "index": indexed})
 
 if __name__ == "__main__":
     app.run(port=5000,debug=True)
