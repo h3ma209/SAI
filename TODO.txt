@@ -11,4 +11,4 @@ becuz hema was indexed as '0' becuz its not in the vocab
 
 1- i fixed the first one by removing all the zeros in the indexed list
 
-3 - flask now works, as an REST API, returns JSON
+3 - flask now works, as a REST API, returns JSON
