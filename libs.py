@@ -1,100 +1,86 @@
 import os
 import pandas
-import glob
 import pickle
+import torch
+from torchtext import vocab
+from transformers import BertTokenizer
 
-f = open('keys/keywords.txt','r')
-keys = list(map(lambda x:x.replace("\n",''),f.readlines()))
-f.close()
-f = open('keys/replace.txt','r')
+# Load keywords
+with open('keys/keywords.txt', 'r') as f:
+    keys = [line.strip() for line in f]
 
-dicts = {}
-replace = list(map(lambda x:x.replace("\n",''),f.readlines()))
+# Load replacements
+replacements = {}
+with open('keys/replace.txt', 'r') as f:
+    for line in f:
+        key, value = line.strip().split("==")
+        replacements[key.strip()] = value.strip()
 
-for line in replace:
-    x,y = line.split("==")[0].replace(" ",''),line.split("==")[1].replace(" ",'')
-    dicts[x] = y
-f.close()
-
-all_vocabs = list()
-
+all_vocabs = []
 
 def replace_symbol(word):
-    wordlist = []
-    
     try:
-        type(int(word))
-        wordlist.append("INT")
-    except:
-        word = list(word)
-        for i,l in enumerate(word):
-            try:
-                replacement = dicts[l]
-            except:
-                replacement = None
-
-            if replacement != None:
-                l = " "+replacement+' '
-            wordlist.append(l)
-        
-    return " ".join("".join(wordlist).strip().split("  "))
-
+        int(word)
+        return "INT"
+    except ValueError:
+        word_list = []
+        for char in word:
+            replacement = replacements.get(char)
+            word_list.append(f" {replacement} " if replacement else char)
+        return "".join(word_list).strip().replace("  ", " ")
 
 def sql_tokenizer(query):
     query = query.lower()
-    bb = list(map(replace_symbol,query.split(" ")))
-    bb = ' '.join(bb)
-    tokenized = " ".join(list(map(replace_symbol,bb.split(" "))))
-    split = tokenized.split(" ")
-    for i,word in enumerate(tokenized.split(" ")):
+    processed_query = ' '.join(map(replace_symbol, query.split()))
+    tokenized = ' '.join(map(replace_symbol, processed_query.split()))
+    split = tokenized.split()
+    for i, word in enumerate(split):
         if word.upper() in keys:
             split[i] = word.upper()
-    
-    return " ".join(split)
+    return ' '.join(split)
 
-def open_file(filename,label,safe=False,limit=0):
+def open_file(filename, label, safe=False, limit=0):
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+        if limit > 0:
+            lines = lines[:limit]
 
-	
-
-
-    f = open(filename,'r')
-    if limit == 0:
-    	txt = f.readlines()
-    else:
-    	txt = f.readlines()[:limit]
-    f.close()
-#    txt = list(map(lambda x:x.replace("\n",' ') if( len(x) > 0) else None,txt))
     text = []
-    for sent in txt:
-        if len(sent) > 0:
-            sent_list = []
-            sent = sent.replace("\n",'').split(" ")
-            for word in sent:
-                if len(word)> 0:
-                    sent_list.append(word)
+    for line in lines:
+        line = line.strip()
+        if line:
+            words = [word for word in line.split() if word]
             if safe:
-            	text.append(" ".join(sent_list))
+                text.append(' '.join(words))
             else:
+                text.append(sql_tokenizer(' '.join(words)))
 
-            	text.append(sql_tokenizer(" ".join(sent_list)))
-            
-
-    dict = {'text':text,'label':[label for i in range(len(text))]}
-    data = pandas.DataFrame(dict)
-    all_vocabs.append([sent for sent in data['text']])
+    data = pandas.DataFrame({'text': text, 'label': [label] * len(text)})
+    all_vocabs.extend(data['text'].tolist())
     return data
 
 def custom_tokenizer(sentence):
     with open('tokenizer.p', 'rb') as fp:
         data = pickle.load(fp)
-    sent = sentence.strip().split(" ")
+    
     tokenized = []
-    for word in sent:
-        if len(word) > 0:
+    for word in sentence.strip().split():
+        if word:
             try:
                 index = data[word]
                 tokenized.append(index)
-
-            except:
+            except KeyError:
                 pass
     return tokenized
+
+def load_vocab(path):
+    with open(path, 'rb') as f:
+        vocab_obj = pickle.load(f)
+    return vocab_obj
+
+# Add bert_tokenizer to libs.py
+BERT_MODEL_NAME = 'bert-base-uncased'
+tokenizer = BertTokenizer.from_pretrained(BERT_MODEL_NAME)
+
+def bert_tokenizer(text):
+    return tokenizer.tokenize(sql_tokenizer(text))
