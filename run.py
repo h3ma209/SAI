@@ -82,6 +82,7 @@ def build_and_save_vocab(train_data):
 def create_iterators(train_data, valid_data):
     print("Creating iterators...")
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(device)
     train_iterator, valid_iterator = data.BucketIterator.splits(
         (train_data, valid_data),
         batch_size=BATCH_SIZE,
