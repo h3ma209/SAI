@@ -12,6 +12,8 @@ from Model import *
 from transformers import BertTokenizer
 from libs import sql_tokenizer  # Import sql_tokenizer from libs.py
 import pickle
+import spacy
+nlp = spacy.load("en_core_web_sm")
 
 # Constants
 SEED = 1000
@@ -20,7 +22,7 @@ EMBEDDING_DIM = 100
 HIDDEN_DIM = 32
 NUM_LAYERS = 2
 DROPOUT = 0.2
-N_EPOCHS = 5
+N_EPOCHS = 50
 DATA_PATH = 'csv_files/safe_xss_sql.csv'  # Removed ../
 WEIGHTS_PATH = 'saved_weights.pt'
 MODELS_DIR = "saved_models"  # Removed ../
@@ -45,7 +47,9 @@ def bert_tokenizer(text,debug=False):
     return tokenizer.tokenize(sql)
 
 # Define fields
-TEXT = data.Field(tokenize=bert_tokenizer, batch_first=True, include_lengths=True)
+# TEXT = data.Field(tokenize=bert_tokenizer, batch_first=True, include_lengths=True)
+TEXT = data.Field(tokenize=sql_tokenizer, batch_first=True, include_lengths=True)
+
 LABEL = data.LabelField(dtype=torch.float, batch_first=True)
 fields = [(None, None), ('text', TEXT), ('label', LABEL)]
 
@@ -184,7 +188,8 @@ def save_model(model, valid_acc):
 # Prediction function
 def predict(model, sentence):
     pred_2_lbl = {1: 'xss', 0: 'sql', 2: "safe"}
-    tokenized = bert_tokenizer(sentence, debug=True)
+    # tokenized = bert_tokenizer(sentence, debug=True)
+    tokenized = sql_tokenizer(sentence )
     print(f"tokenized: {tokenized}")
     indexed = [TEXT.vocab.stoi[t] for t in tokenized]
     length = [len(indexed)]

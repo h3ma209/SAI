@@ -29,7 +29,7 @@ $ == DLLR
 : == CLN
 ; == SMCLN
 " == DQUT
-“ == RQUT
+" == RQUT
 ' == SQUT
 < == LT
 > == GT
