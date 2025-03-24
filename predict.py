@@ -22,7 +22,8 @@ dropout = 0.2
 
 model = classifier(size_of_vocab, embedding_dim, num_hidden_nodes, num_output_nodes, num_layers,
                    bidirectional=True, dropout=dropout)
-model.load_state_dict(torch.load('saved_weights/Acc 89.06.pt', map_location=device))
+model.load_state_dict(torch.load('saved_weights/Acc 98.96.pt', map_location=device))
+model.to(device)  # Explicitly move the model to the device
 model.eval()
 print("loaded model", time.time() - proc_start)
 
@@ -32,8 +33,8 @@ def predict(model, sentence, all=False):
     indexed = [TEXT.vocab.stoi[t] for t in tokenized]
     length = [len(indexed)]
     tensor = torch.LongTensor(indexed).to(device).unsqueeze(1).T
-    length_tensor = torch.LongTensor(length)
-    prediction = model(tensor, length_tensor)
+    length_tensor_cpu = torch.LongTensor(length).to(torch.device('cpu')).long() # Move to CPU and ensure int64
+    prediction = model(tensor, length_tensor_cpu)
     pred_lbl = np.argmax(prediction.detach().cpu().numpy())
     if all:
         return prediction, pred_2_lbl[pred_lbl], tokenized, indexed

@@ -82,5 +82,9 @@ def load_vocab(path):
 BERT_MODEL_NAME = 'bert-base-uncased'
 tokenizer = BertTokenizer.from_pretrained(BERT_MODEL_NAME)
 
-def bert_tokenizer(text):
-    return tokenizer.tokenize(sql_tokenizer(text))
+def bert_tokenizer(text,debug=False):
+    sql = sql_tokenizer(text)
+    if debug:
+        print(f"tok: {sql}")
+
+    return tokenizer.tokenize(sql)

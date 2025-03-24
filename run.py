@@ -14,13 +14,13 @@ from libs import sql_tokenizer  # Import sql_tokenizer from libs.py
 import pickle
 
 # Constants
-SEED = 2019
+SEED = 1000
 BATCH_SIZE = 64
 EMBEDDING_DIM = 100
 HIDDEN_DIM = 32
 NUM_LAYERS = 2
 DROPOUT = 0.2
-N_EPOCHS = 3
+N_EPOCHS = 5
 DATA_PATH = 'csv_files/safe_xss_sql.csv'  # Removed ../
 WEIGHTS_PATH = 'saved_weights.pt'
 MODELS_DIR = "saved_models"  # Removed ../
@@ -37,8 +37,12 @@ torch.backends.cudnn.deterministic = True
 tokenizer = BertTokenizer.from_pretrained(BERT_MODEL_NAME)
 
 # Tokenization function using BERT tokenizer
-def bert_tokenizer(text):
-    return tokenizer.tokenize(sql_tokenizer(text))
+def bert_tokenizer(text,debug=False):
+    sql = sql_tokenizer(text)
+    if debug:
+        print(f"tok: {sql}")
+
+    return tokenizer.tokenize(sql)
 
 # Define fields
 TEXT = data.Field(tokenize=bert_tokenizer, batch_first=True, include_lengths=True)
@@ -128,7 +132,16 @@ def train(model, iterator, optimizer, criterion):
     for batch in iterator:
         optimizer.zero_grad()
         text, text_lengths = batch.text
-        predictions = model(text, text_lengths).squeeze()
+
+        # Explicitly move text_lengths to CPU and ensure it's int64
+        text_lengths_cpu = text_lengths.cpu().long()
+
+        # Print the device and dtype for debugging
+        # print(f"Device of text_lengths: {text_lengths.device}")
+        # print(f"Device of text_lengths_cpu: {text_lengths_cpu.device}")
+        # print(f"Type of text_lengths_cpu: {text_lengths_cpu.dtype}")
+
+        predictions = model(text, text_lengths_cpu).squeeze()
         loss = criterion(predictions, batch.label.long())
         acc = binary_accuracy(predictions, batch.label.long())
         loss.backward()
@@ -136,6 +149,7 @@ def train(model, iterator, optimizer, criterion):
         epoch_loss += loss.item()
         epoch_acc += acc.item()
     return epoch_loss / len(iterator), epoch_acc / len(iterator)
+# Evaluation loop
 
 # Evaluation loop
 def evaluate(model, iterator, criterion):
@@ -144,13 +158,21 @@ def evaluate(model, iterator, criterion):
     with torch.no_grad():
         for batch in iterator:
             text, text_lengths = batch.text
-            predictions = model(text, text_lengths).squeeze()
+
+            # Explicitly move text_lengths to CPU and ensure it's int64
+            text_lengths_cpu = text_lengths.cpu().long()
+
+            # Print the device and dtype for debugging (optional for final code)
+            # print(f"Evaluate - Device of text_lengths: {text_lengths.device}")
+            # print(f"Evaluate - Device of text_lengths_cpu: {text_lengths_cpu.device}")
+            # print(f"Evaluate - Type of text_lengths_cpu: {text_lengths_cpu.dtype}")
+
+            predictions = model(text, text_lengths_cpu).squeeze()
             loss = criterion(predictions, batch.label.long())
             acc = binary_accuracy(predictions, batch.label.long())
             epoch_loss += loss.item()
             epoch_acc += acc.item()
     return epoch_loss / len(iterator), epoch_acc / len(iterator)
-
 # Save model function
 def save_model(model, valid_acc):
     md_val_acc = "%.2f" % (valid_acc * 100)
@@ -162,11 +184,14 @@ def save_model(model, valid_acc):
 # Prediction function
 def predict(model, sentence):
     pred_2_lbl = {1: 'xss', 0: 'sql', 2: "safe"}
-    tokenized = bert_tokenizer(sentence)
+    tokenized = bert_tokenizer(sentence, debug=True)
+    print(f"tokenized: {tokenized}")
     indexed = [TEXT.vocab.stoi[t] for t in tokenized]
     length = [len(indexed)]
     tensor = torch.LongTensor(indexed).to(device).unsqueeze(1).T
     length_tensor = torch.LongTensor(length)
+    print(f"tensor: {tensor}")
+    print(f"length_tensor: {length_tensor}")
     prediction = model(tensor, length_tensor)
     pred_lbl = np.argmax(prediction.detach().cpu().numpy())
     print('\npredicted threat type:', pred_2_lbl[pred_lbl])
