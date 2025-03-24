@@ -13,6 +13,8 @@ from transformers import BertTokenizer
 from libs import sql_tokenizer  # Import sql_tokenizer from libs.py
 import pickle
 import spacy
+
+
 nlp = spacy.load("en_core_web_sm")
 
 # Constants
@@ -22,7 +24,7 @@ EMBEDDING_DIM = 100
 HIDDEN_DIM = 32
 NUM_LAYERS = 2
 DROPOUT = 0.2
-N_EPOCHS = 50
+N_EPOCHS = 5
 DATA_PATH = 'csv_files/safe_xss_sql.csv'  # Removed ../
 WEIGHTS_PATH = 'saved_weights.pt'
 MODELS_DIR = "saved_models"  # Removed ../
@@ -48,10 +50,15 @@ def bert_tokenizer(text,debug=False):
 
 # Define fields
 # TEXT = data.Field(tokenize=bert_tokenizer, batch_first=True, include_lengths=True)
-TEXT = data.Field(tokenize=sql_tokenizer, batch_first=True, include_lengths=True)
+def spacy_tokenizer(text):
+    return [token.text for token in nlp(text)]
+TEXT = data.Field(tokenize=spacy_tokenizer, batch_first=True, include_lengths=True)
 
 LABEL = data.LabelField(dtype=torch.float, batch_first=True)
 fields = [(None, None), ('text', TEXT), ('label', LABEL)]
+
+# print all the labels and their indexes
+
 
 # Load and preprocess data
 def load_and_preprocess_data():
@@ -78,6 +85,8 @@ def build_and_save_vocab(train_data):
     LABEL.build_vocab(train_data)
     print(f"Size of TEXT vocabulary: {len(TEXT.vocab)}")
     print(f"Size of LABEL vocabulary: {len(LABEL.vocab)}")
+
+    print("TEXT.vocab.stoi:", LABEL.vocab.stoi)
 
     print("Saving vocabulary and label...")
     with open(VOCAB_PATH, 'wb') as f:
@@ -187,9 +196,11 @@ def save_model(model, valid_acc):
 
 # Prediction function
 def predict(model, sentence):
-    pred_2_lbl = {1: 'xss', 0: 'sql', 2: "safe"}
+    pred_2_lbl = {2: 'xss', 1: 'sql', 0: "safe", 3: "label"}
+    # pred_2_lbl = {'safe': 0, 'sql': 1, 'xss': 2, 'label': 3}
     # tokenized = bert_tokenizer(sentence, debug=True)
-    tokenized = sql_tokenizer(sentence )
+    # tokenized = sql_tokenizer(sentence )
+    tokenized = [tok.text for tok in nlp.tokenizer(sql_tokenizer(sentence))] 
     print(f"tokenized: {tokenized}")
     indexed = [TEXT.vocab.stoi[t] for t in tokenized]
     length = [len(indexed)]
@@ -199,7 +210,7 @@ def predict(model, sentence):
     print(f"length_tensor: {length_tensor}")
     prediction = model(tensor, length_tensor)
     pred_lbl = np.argmax(prediction.detach().cpu().numpy())
-    print('\npredicted threat type:', pred_2_lbl[pred_lbl])
+    print('predicted threat type:', pred_2_lbl[pred_lbl])
     return prediction
 
 if __name__ == "__main__":
@@ -223,3 +234,6 @@ if __name__ == "__main__":
     save_model(model, valid_acc)
     print("\nExample prediction:")
     predict(model, 'group_concat(namapemohon,0x3a,email),3,4,5,6 from pendaftaran_user ')
+    predict(model, 'alert(1) </script>')
+    predict(model, 'select * from users where id=1;')
+    predict(model, 'this is a safe text')
