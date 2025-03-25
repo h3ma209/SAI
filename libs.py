@@ -5,6 +5,9 @@ import torch
 from torchtext import vocab
 from transformers import BertTokenizer
 
+import spacy
+nlp = spacy.load("en_core_web_sm")
+
 # Load keywords
 with open('keys/keywords.txt', 'r') as f:
     keys = [line.strip() for line in f]
@@ -88,3 +91,6 @@ def bert_tokenizer(text,debug=False):
         print(f"tok: {sql}")
 
     return tokenizer.tokenize(sql)
+
+def spacy_tokenizer(text):
+    return [token.text for token in nlp(text)]

@@ -30,8 +30,8 @@ WEIGHTS_PATH = 'saved_weights.pt'
 MODELS_DIR = "saved_models"  # Removed ../
 WEIGHTS_DIR = "saved_weights"  # Removed ../
 BERT_MODEL_NAME = 'bert-base-uncased'
-VOCAB_PATH = "pickles/vocab.pt"
-LABEL_PATH = "pickles/label.pt"
+VOCAB_PATH = "pickles/vocab.pkl"
+LABEL_PATH = "pickles/label.pkl"
 
 # Set random seeds for reproducibility
 torch.manual_seed(SEED)
@@ -211,6 +211,7 @@ def predict(model, sentence):
     prediction = model(tensor, length_tensor)
     pred_lbl = np.argmax(prediction.detach().cpu().numpy())
     print('predicted threat type:', pred_2_lbl[pred_lbl])
+    print("--------------------------\n")
     return prediction
 
 if __name__ == "__main__":
@@ -237,3 +238,7 @@ if __name__ == "__main__":
     predict(model, 'alert(1) </script>')
     predict(model, 'select * from users where id=1;')
     predict(model, 'this is a safe text')
+    predict(model,"<h1>Hello World</h1>")
+    predict(model,"<script> this is a safe text dont worry")
+    predict(model,"make sure you select from from the groups where they are equal to eachother")
+    
