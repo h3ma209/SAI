@@ -29,7 +29,7 @@ def create_model(size_of_vocab, embedding_dim=100, num_hidden_nodes=32, num_outp
     return classifier(size_of_vocab, embedding_dim, num_hidden_nodes, num_output_nodes, num_layers, bidirectional=True, dropout=dropout)
 
 def predict(model, sentence, text_vocab, device):
-    pred_2_lbl = {2: 'xss', 1: 'sql', 0: "safe", 3: "label"}
+    label_order = {'xss': 0, 'sql': 1, 'safe': 2}
     
     tokenized = [tok.text for tok in nlp.tokenizer(sql_tokenizer(sentence))]
     indexed = [text_vocab.vocab.stoi.get(t, text_vocab.vocab.stoi["<unk>"]) for t in tokenized]
