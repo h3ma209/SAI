@@ -33,6 +33,7 @@ def replace_symbol(word):
         return "".join(word_list).strip().replace("  ", " ")
 
 def sql_tokenizer(query):
+    query = query.replace("'", "").replace('"', "")
     query = query.lower()
     processed_query = ' '.join(map(replace_symbol, query.split()))
     tokenized = ' '.join(map(replace_symbol, processed_query.split()))
