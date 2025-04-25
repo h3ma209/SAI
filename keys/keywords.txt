@@ -252,9 +252,6 @@ WORK
 WRITE
 YEAR
 ZONE
-
-# MySQL 5.0 keywords (reference: http://dev.mysql.com/doc/refman/5.0/en/reserved-words.html)
-
 ADD
 ALL
 ALTER
