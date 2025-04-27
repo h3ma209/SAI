@@ -3,7 +3,7 @@ import django
 from django.conf import settings
 from django.core.management import execute_from_command_line
 from django.core.wsgi import get_wsgi_application
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.urls import path
 from django.views.decorators.csrf import csrf_exempt
 
@@ -65,12 +65,16 @@ if not settings.configured:
         DEBUG=True,
         SECRET_KEY="your-secret-key",  # Change this later
         ROOT_URLCONF=__name__,
-        ALLOWED_HOSTS=["*"],
-        INSTALLED_APPS=[],  # Empty because no sessions, no auth
-        MIDDLEWARE=[
-            "django.middleware.common.CommonMiddleware",
-            "django.middleware.clickjacking.XFrameOptionsMiddleware",
+        ALLOWED_HOSTS=["*"],  # This is for testing purposes; change for production
+        INSTALLED_APPS=[
+            'corsheaders',  # Add CORS headers app
         ],
+        MIDDLEWARE=[
+            'corsheaders.middleware.CorsMiddleware',  # Ensure it's at the top
+            'django.middleware.common.CommonMiddleware',
+            'django.middleware.clickjacking.XFrameOptionsMiddleware',
+        ],
+        CORS_ALLOW_ALL_ORIGINS=True,  # Allow all origins for now (for testing)
     )
 
 # Setup Django
@@ -117,6 +121,42 @@ def check_prediction(request, check_string):
     else:
         return JsonResponse({"error": "Prediction failed"}, status=500)
 
+def check_prediction_post(request):
+    if request.method == "POST":
+        try:
+            import json
+            data = json.loads(request.body)
+            check_string = data.get("check_string", "")
+
+            if not check_string:
+                return JsonResponse({"error": "Missing 'check_string' in request body"}, status=400)
+
+            check_string = check_string.replace("'","").replace('"', "")
+            print(sql_tokenizer(check_string))
+
+            # Perform prediction
+            predicted_label, confidence, probabilities = predict_sentence(
+                model, check_string, stoi, int_to_label, sql_tokenizer, device, MAX_SEQ_LEN
+            )
+
+            if predicted_label is not None:
+                return JsonResponse({
+                    "sentence": check_string,
+                    "prediction": predicted_label,
+                    "confidence": f"{confidence:.2f}%",
+                    "probabilities": {label: f"{prob:.2f}%" for label, prob in probabilities.items()}
+                })
+            else:
+                return JsonResponse({"error": "Prediction failed"}, status=500)
+
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+        except Exception as e:
+            print(f"Error in check_prediction_post: {e}")
+            return JsonResponse({"error": "Internal error"}, status=500)
+
+    return JsonResponse({"error": "Invalid request method"}, status=405)
+
 @csrf_exempt
 def handle_post(request):
     if request.method == "POST":
@@ -150,12 +190,21 @@ def handle_post(request):
 
     return JsonResponse({"error": "Invalid request method"}, status=405)
 
+# Handle OPTIONS requests for preflight CORS checks
+def handle_options(request):
+    response = HttpResponse(status=200)
+    response["Access-Control-Allow-Origin"] = "*"
+    response["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    response["Access-Control-Allow-Headers"] = "Content-Type"
+    return response
+
 # URL patterns
 urlpatterns = [
     path("", index),
     path("predict/simple/", simple_pred),
     path("predict/check/<str:check_string>/", check_prediction),
-    path("predict/post/", handle_post),
+    path("predict/post/", check_prediction_post),
+    path("predict/check/<str:check_string>/options/", handle_options),  # Handle OPTIONS requests
 ]
 
 # WSGI application
@@ -164,4 +213,4 @@ application = get_wsgi_application()
 # Start server
 if __name__ == "__main__":
     print("Starting server...")
-    execute_from_command_line(["server.py", "runserver", "0.0.0.0:8000"])
+    execute_from_command_line(["server.py", "runserver", "127.0.0.1:8000"])
