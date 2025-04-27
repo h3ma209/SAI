@@ -34,7 +34,7 @@ NUM_LAYERS = 1
 DROPOUT = 0.2
 N_EPOCHS = 2
 # Ensure these paths are correct relative to where you run train.py
-DATA_PATH = 'csv_files/dt-v7.csv'
+DATA_PATH = 'csv_files/dt-v8.csv'
 WEIGHTS_PATH = 'saved_weights/best_model.pt' # Give the best weights a specific name
 MODELS_DIR = "saved_models"
 WEIGHTS_DIR = "saved_weights"

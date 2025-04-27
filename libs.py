@@ -9,6 +9,8 @@ __all__ = [
     'sql_tokenizer',
     'load_data_from_csv',
     'build_vocabulary',
+    'replace_symbol',
+    'open_file',
     'numericalize_text',
     'load_vocab', # Include if you plan to load previously saved vocab
     # Add other functions/variables you want to be accessible via '*'
@@ -87,6 +89,7 @@ def sql_tokenizer(query):
         return []
 
     query = query.lower()
+    
 
     # Apply symbol and integer replacement first
     processed_query_with_symbols = ' '.join(map(replace_symbol, query.split()))
@@ -185,4 +188,18 @@ def load_vocab(path):
         return None # Return None if file is not found
     except Exception as e:
         print(f"Error loading object from {path}: {e}")
+        return None
+def open_file(filename):
+    """
+    Opens a file and returns its content.
+    """
+    try:
+        with open(filename, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return content
+    except FileNotFoundError:
+        print(f"Error: File not found at {filename}")
+        return None
+    except Exception as e:
+        print(f"Error reading file {filename}: {e}")
         return None
