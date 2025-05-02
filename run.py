@@ -126,7 +126,7 @@ def load_and_preprocess_data_custom():
     stoi, itos = build_vocabulary(texts, sql_tokenizer, min_freq=1) # Example: min_freq=2
 
     # Build label to integer mapping
-    unique_labels = sorted(list(set(labels))) # Sort to ensure consistent mapping
+    unique_labels = sorted(list(set(labels))) # Sort to ensure consistent mapping'.   
     label_to_int = {label: i for i, label in enumerate(unique_labels)}
     int_to_label = {i: label for label, i in label_to_int.items()} # For mapping back
 
